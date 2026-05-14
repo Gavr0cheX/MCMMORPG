@@ -1,0 +1,7 @@
+name: MmorpgEconomy
+version: 0.1.0
+main: com.example.mmorpg.economy.EconomyPlugin
+api-version: "1.21"
+depend: ["MmorpgCore"]
+authors: ["MMORPG Platform"]
+description: Server-authoritative economy facade and transaction event publisher.

@@ -1,0 +1,7 @@
+name: MmorpgDungeon
+version: 0.1.0
+main: com.example.mmorpg.dungeon.DungeonPlugin
+api-version: "1.21"
+depend: ["MmorpgCore"]
+authors: ["MMORPG Platform"]
+description: Future dungeon instance lifecycle hooks.

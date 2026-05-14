@@ -1,0 +1,27 @@
+FROM node:22-alpine AS deps
+WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY packages/shared-types/package.json packages/shared-types/package.json
+COPY packages/shared-config/package.json packages/shared-config/package.json
+COPY packages/shared-utils/package.json packages/shared-utils/package.json
+RUN pnpm install --filter @mmorpg/api... --prod=false --frozen-lockfile
+
+FROM deps AS build
+COPY apps/api apps/api
+COPY packages packages
+RUN cd apps/api && pnpm exec prisma generate --config prisma.config.ts
+RUN pnpm --filter @mmorpg/api build
+
+FROM node:22-alpine AS runtime
+WORKDIR /app
+RUN apk add --no-cache wget && corepack enable
+ENV NODE_ENV=production
+COPY --from=build /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+COPY --from=build /app/apps/api/prisma ./apps/api/prisma
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
+CMD ["node", "apps/api/dist/server.js"]

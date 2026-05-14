@@ -1,0 +1,61 @@
+{
+  "name": "@mmorpg/launcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "package": "electron-builder --dir",
+    "dist": "electron-builder",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@mmorpg/shared-types": "workspace:*",
+    "electron-updater": "^6.8.3",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "^5.1.1",
+    "electron": "latest",
+    "electron-builder": "latest",
+    "electron-vite": "latest",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "typescript": "^5.9.2",
+    "vite": "^7.2.7"
+  },
+  "build": {
+    "appId": "com.mmorpg.launcher",
+    "productName": "MMORPG Launcher",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://cdn.example.com/launcher/"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.games"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Game"
+    }
+  }
+}

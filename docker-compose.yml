@@ -1,0 +1,290 @@
+name: mmorpg-platform
+
+x-restart: &restart-policy
+  restart: unless-stopped
+
+x-minecraft-env: &minecraft-env
+  EULA: "TRUE"
+  TYPE: "${PAPER_TYPE:-PURPUR}"
+  VERSION: "${MINECRAFT_VERSION:-1.21.8}"
+  INIT_MEMORY: "${MINECRAFT_INIT_MEMORY:-256M}"
+  MAX_MEMORY: "${MINECRAFT_MAX_MEMORY:-1G}"
+  ONLINE_MODE: "FALSE"
+  ENFORCE_SECURE_PROFILE: "FALSE"
+  ENABLE_RCON: "true"
+  RCON_PASSWORD: "${RCON_PASSWORD:-local_rcon_password}"
+  SPIGET_RESOURCES: ""
+  JVM_OPTS: "-Dcom.mojang.eula.agree=true"
+  MMORPG_API_BASE_URL: "http://api:3000"
+  MMORPG_REDIS_URL: "redis://redis:6379"
+  MMORPG_INTERNAL_TOKEN: "${INTERNAL_API_TOKEN:-replace_with_internal_service_token}"
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    <<: *restart-policy
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+      velocity:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+      - "25565:25565"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./infrastructure/launcher-updates:/var/www/launcher-updates:ro
+    networks:
+      - edge
+      - internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  velocity:
+    image: itzg/mc-proxy:java21
+    <<: *restart-policy
+    environment:
+      TYPE: VELOCITY
+      MEMORY: 512M
+      CFG_MOTD: "MMORPG Network"
+      CFG_PLAYER_INFO_FORWARDING_MODE: modern
+      CFG_FORWARDING_SECRET: "${VELOCITY_FORWARDING_SECRET:-replace_with_velocity_forwarding_secret}"
+      CFG_SERVERS: "lobby:lobby:25565,mmorpg-1:mmorpg-1:25565,mmorpg-2:mmorpg-2:25565"
+      CFG_TRY: "lobby"
+    volumes:
+      - velocity-data:/server
+      - ./minecraft/velocity/velocity.toml:/config/velocity.toml:ro
+    networks:
+      - internal
+    expose:
+      - "25565"
+    healthcheck:
+      test: ["CMD", "mc-monitor", "status", "--host", "localhost", "--port", "25565"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+
+  lobby:
+    image: itzg/minecraft-server:java21
+    <<: *restart-policy
+    environment:
+      <<: *minecraft-env
+      SERVER_NAME: lobby
+      MMORPG_SERVER_SLUG: lobby
+      MOTD: "MMORPG Lobby"
+      MAX_PLAYERS: "250"
+      MODE: adventure
+      VIEW_DISTANCE: "8"
+      SIMULATION_DISTANCE: "4"
+    volumes:
+      - lobby-data:/data
+      - ./minecraft/servers/lobby/plugins:/data/plugins
+    networks:
+      - internal
+    expose:
+      - "25565"
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  mmorpg-1:
+    image: itzg/minecraft-server:java21
+    <<: *restart-policy
+    depends_on:
+      lobby:
+        condition: service_healthy
+    environment:
+      <<: *minecraft-env
+      SERVER_NAME: mmorpg-1
+      MMORPG_SERVER_SLUG: mmorpg-1
+      MOTD: "MMORPG Realm 1"
+      MAX_PLAYERS: "150"
+      MODE: survival
+      VIEW_DISTANCE: "10"
+      SIMULATION_DISTANCE: "6"
+    volumes:
+      - mmorpg-1-data:/data
+      - ./minecraft/servers/mmorpg-1/plugins:/data/plugins
+    networks:
+      - internal
+    expose:
+      - "25565"
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  mmorpg-2:
+    image: itzg/minecraft-server:java21
+    <<: *restart-policy
+    depends_on:
+      mmorpg-1:
+        condition: service_healthy
+    environment:
+      <<: *minecraft-env
+      SERVER_NAME: mmorpg-2
+      MMORPG_SERVER_SLUG: mmorpg-2
+      MOTD: "MMORPG Realm 2"
+      MAX_PLAYERS: "150"
+      MODE: survival
+      VIEW_DISTANCE: "10"
+      SIMULATION_DISTANCE: "6"
+    volumes:
+      - mmorpg-2-data:/data
+      - ./minecraft/servers/mmorpg-2/plugins:/data/plugins
+    networks:
+      - internal
+    expose:
+      - "25565"
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  postgres:
+    image: postgres:16-alpine
+    <<: *restart-policy
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-mmorpg}"
+      POSTGRES_USER: "${POSTGRES_USER:-mmorpg}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-change_me_dev}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mmorpg} -d ${POSTGRES_DB:-mmorpg}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  redis:
+    image: redis:7.4-alpine
+    <<: *restart-policy
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.api
+    <<: *restart-policy
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: "${NODE_ENV:-development}"
+      DATABASE_URL: "${DATABASE_URL:-postgresql://mmorpg:change_me_dev@postgres:5432/mmorpg?schema=public}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
+      JWT_ACCESS_SECRET: "${JWT_ACCESS_SECRET:-replace_with_64_chars_minimum_access_secret}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:-replace_with_64_chars_minimum_refresh_secret}"
+      JWT_ACCESS_TTL: "${JWT_ACCESS_TTL:-15m}"
+      JWT_REFRESH_TTL_DAYS: "${JWT_REFRESH_TTL_DAYS:-30}"
+      COOKIE_SECRET: "${COOKIE_SECRET:-replace_with_32_chars_minimum_cookie_secret}"
+      INTERNAL_API_TOKEN: "${INTERNAL_API_TOKEN:-replace_with_internal_service_token}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost,http://localhost:3001}"
+      RATE_LIMIT_MAX: "${RATE_LIMIT_MAX:-120}"
+      RATE_LIMIT_WINDOW: "${RATE_LIMIT_WINDOW:-1 minute}"
+      LAUNCHER_UPDATES_BASE_URL: "${LAUNCHER_UPDATES_BASE_URL:-http://localhost/launcher-updates}"
+    networks:
+      - internal
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.web
+    <<: *restart-policy
+    environment:
+      NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+      PORT: "3001"
+      NEXT_PUBLIC_API_BASE_URL: "${API_BASE_URL:-http://localhost/api}"
+      NEXT_PUBLIC_WS_URL: "${PUBLIC_BASE_URL:-http://localhost}"
+    networks:
+      - internal
+    expose:
+      - "3001"
+
+  launcher-updates:
+    image: nginx:1.27-alpine
+    <<: *restart-policy
+    volumes:
+      - ./infrastructure/launcher-updates:/usr/share/nginx/html:ro
+    networks:
+      - internal
+    expose:
+      - "80"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    <<: *restart-policy
+    profiles: ["monitoring"]
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - internal
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    <<: *restart-policy
+    profiles: ["monitoring"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - internal
+    ports:
+      - "3002:3000"
+
+networks:
+  edge:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: false
+
+volumes:
+  postgres-data:
+  redis-data:
+  velocity-data:
+  lobby-data:
+  mmorpg-1-data:
+  mmorpg-2-data:
+  prometheus-data:
+  grafana-data:

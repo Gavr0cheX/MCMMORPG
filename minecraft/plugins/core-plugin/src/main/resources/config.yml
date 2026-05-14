@@ -1,0 +1,4 @@
+api-base-url: "http://api:3000"
+redis-url: "redis://redis:6379"
+internal-token: "replace_with_internal_service_token"
+server-slug: "local"

@@ -1,0 +1,6 @@
+name: MmorpgCore
+version: 0.1.0
+main: com.example.mmorpg.core.CorePlugin
+api-version: "1.21"
+authors: ["MMORPG Platform"]
+description: Core services and dependency registry for the MMORPG network.

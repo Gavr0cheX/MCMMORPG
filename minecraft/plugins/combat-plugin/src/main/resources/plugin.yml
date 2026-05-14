@@ -1,0 +1,7 @@
+name: MmorpgCombat
+version: 0.1.0
+main: com.example.mmorpg.combat.CombatPlugin
+api-version: "1.21"
+depend: ["MmorpgCore"]
+authors: ["MMORPG Platform"]
+description: Server-authoritative custom combat, resource, and cooldown systems.

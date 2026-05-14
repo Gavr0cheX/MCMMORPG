@@ -1,0 +1,485 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  engineType          = "client"
+  generatedFileExtension = "ts"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  PLAYER
+  MODERATOR
+  ADMIN
+  SERVICE
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  BANNED
+  PENDING_VERIFICATION
+}
+
+enum CharacterStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum GuildRole {
+  OWNER
+  OFFICER
+  MEMBER
+  RECRUIT
+}
+
+enum FriendStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum MailStatus {
+  UNREAD
+  READ
+  ARCHIVED
+  DELETED
+}
+
+enum PartyRole {
+  LEADER
+  MEMBER
+}
+
+enum QuestStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  READY_TO_TURN_IN
+  COMPLETED
+  FAILED
+}
+
+enum ServerKind {
+  LOBBY
+  MMORPG
+  DUNGEON
+  MATCHMAKING
+}
+
+enum GameServerStatus {
+  STARTING
+  ONLINE
+  DRAINING
+  OFFLINE
+  FAILED
+}
+
+enum TransactionType {
+  GRANT
+  PURCHASE
+  SALE
+  TRADE
+  QUEST_REWARD
+  LOOT_DROP
+  ADMIN_ADJUSTMENT
+  MARKETPLACE_FEE
+}
+
+enum NotificationType {
+  SYSTEM
+  FRIEND
+  GUILD
+  PARTY
+  ECONOMY
+  MAIL
+  MATCHMAKING
+}
+
+model User {
+  id                     String       @id @default(uuid()) @db.Uuid
+  email                  String       @unique
+  username               String       @unique
+  displayName            String?
+  passwordHash           String
+  role                   UserRole     @default(PLAYER)
+  status                 UserStatus   @default(ACTIVE)
+  lastLoginAt            DateTime?
+  emailVerifiedAt        DateTime?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  deletedAt              DateTime?
+
+  sessions               Session[]
+  characters             Character[]
+  notifications          Notification[]
+  sentFriendRequests     Friendship[] @relation("FriendRequester")
+  receivedFriendRequests Friendship[] @relation("FriendAddressee")
+  sentMail               Mail[]       @relation("MailSender")
+  receivedMail           Mail[]       @relation("MailRecipient")
+  auditLogs              AuditLog[]   @relation("AuditActor")
+  createdGuilds          Guild[]      @relation("GuildOwner")
+
+  @@index([role])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @unique
+  ipAddress        String?
+  userAgent        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model Character {
+  id                 String              @id @default(uuid()) @db.Uuid
+  userId             String              @db.Uuid
+  name               String              @unique
+  classKey           String
+  level              Int                 @default(1)
+  experience         BigInt              @default(0)
+  status             CharacterStatus     @default(ACTIVE)
+  currentServerSlug  String?
+  currentWorld       String?
+  position           Json?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inventory          Inventory?
+  statistics         PlayerStatistics?
+  guildMembership    GuildMember?
+  partyMembership    PartyMember?
+  questProgress      QuestProgress[]
+  skillProgress      SkillProgress[]
+  economyEvents      EconomyTransaction[]
+  marketplaceListings MarketplaceListing[]
+  leaderboardEntries LeaderboardEntry[]
+  matchmakingTickets MatchmakingTicket[]
+
+  @@index([userId, status])
+  @@index([currentServerSlug])
+  @@index([level])
+  @@index([deletedAt])
+}
+
+model Inventory {
+  id          String          @id @default(uuid()) @db.Uuid
+  characterId String         @unique @db.Uuid
+  capacity    Int            @default(54)
+  version     Int            @default(1)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  character   Character      @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  slots       InventorySlot[]
+
+  @@index([characterId])
+}
+
+model InventorySlot {
+  id          String    @id @default(uuid()) @db.Uuid
+  inventoryId String   @db.Uuid
+  slot        Int
+  itemKey     String
+  quantity    Int      @default(1)
+  durability  Int?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@unique([inventoryId, slot])
+  @@index([itemKey])
+}
+
+model Guild {
+  id          String        @id @default(uuid()) @db.Uuid
+  ownerId     String        @db.Uuid
+  name        String        @unique
+  tag         String        @unique
+  description String?
+  bankBalance Decimal       @default(0) @db.Decimal(18, 2)
+  settings    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  owner       User          @relation("GuildOwner", fields: [ownerId], references: [id])
+  members     GuildMember[]
+
+  @@index([ownerId])
+  @@index([deletedAt])
+}
+
+model GuildMember {
+  id          String    @id @default(uuid()) @db.Uuid
+  guildId     String    @db.Uuid
+  characterId String    @unique @db.Uuid
+  role        GuildRole @default(MEMBER)
+  joinedAt    DateTime  @default(now())
+
+  guild       Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, characterId])
+  @@index([guildId, role])
+}
+
+model Party {
+  id                 String      @id @default(uuid()) @db.Uuid
+  leaderCharacterId  String      @db.Uuid
+  maxSize            Int         @default(5)
+  metadata           Json?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  disbandedAt        DateTime?
+
+  members            PartyMember[]
+  matchmakingTickets MatchmakingTicket[]
+
+  @@index([leaderCharacterId])
+  @@index([disbandedAt])
+}
+
+model PartyMember {
+  id          String    @id @default(uuid()) @db.Uuid
+  partyId     String    @db.Uuid
+  characterId String    @unique @db.Uuid
+  role        PartyRole @default(MEMBER)
+  joinedAt    DateTime  @default(now())
+
+  party       Party     @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([partyId, characterId])
+  @@index([partyId, role])
+}
+
+model QuestProgress {
+  id          String      @id @default(uuid()) @db.Uuid
+  characterId String     @db.Uuid
+  questKey    String
+  status      QuestStatus @default(NOT_STARTED)
+  progress    Json        @default("{}")
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime    @updatedAt
+
+  character   Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, questKey])
+  @@index([questKey, status])
+}
+
+model SkillProgress {
+  id          String    @id @default(uuid()) @db.Uuid
+  characterId String   @db.Uuid
+  skillKey    String
+  level       Int       @default(1)
+  experience  BigInt    @default(0)
+  metadata    Json?
+  updatedAt   DateTime  @updatedAt
+
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, skillKey])
+  @@index([skillKey, level])
+}
+
+model GameServer {
+  id              String           @id @default(uuid()) @db.Uuid
+  slug            String           @unique
+  kind            ServerKind
+  status          GameServerStatus @default(STARTING)
+  address         String
+  port            Int              @default(25565)
+  onlinePlayers   Int              @default(0)
+  maxPlayers      Int              @default(150)
+  metadata        Json?
+  lastHeartbeatAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+
+  @@index([kind, status])
+  @@index([lastHeartbeatAt])
+  @@index([deletedAt])
+}
+
+model EconomyTransaction {
+  id             String          @id @default(uuid()) @db.Uuid
+  characterId    String          @db.Uuid
+  actorUserId    String?         @db.Uuid
+  type           TransactionType
+  currency       String          @default("gold")
+  amount         Decimal         @db.Decimal(18, 2)
+  balanceAfter   Decimal?        @db.Decimal(18, 2)
+  reason         String
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+
+  character      Character       @relation(fields: [characterId], references: [id])
+
+  @@index([characterId, createdAt])
+  @@index([actorUserId])
+  @@index([type, createdAt])
+}
+
+model MarketplaceListing {
+  id          String    @id @default(uuid()) @db.Uuid
+  sellerId    String    @db.Uuid
+  itemKey     String
+  quantity    Int
+  unitPrice   Decimal   @db.Decimal(18, 2)
+  currency    String    @default("gold")
+  metadata    Json?
+  expiresAt   DateTime?
+  soldAt      DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  seller      Character @relation(fields: [sellerId], references: [id])
+
+  @@index([itemKey, soldAt, cancelledAt])
+  @@index([sellerId, createdAt])
+  @@index([expiresAt])
+}
+
+model Mail {
+  id                  String     @id @default(uuid()) @db.Uuid
+  senderUserId         String?    @db.Uuid
+  recipientUserId      String     @db.Uuid
+  recipientCharacterId String?    @db.Uuid
+  subject              String
+  body                 String
+  attachments          Json?
+  status               MailStatus @default(UNREAD)
+  readAt               DateTime?
+  createdAt            DateTime   @default(now())
+  deletedAt            DateTime?
+
+  sender               User?      @relation("MailSender", fields: [senderUserId], references: [id])
+  recipient            User       @relation("MailRecipient", fields: [recipientUserId], references: [id])
+
+  @@index([recipientUserId, status])
+  @@index([senderUserId])
+  @@index([deletedAt])
+}
+
+model Friendship {
+  id           String       @id @default(uuid()) @db.Uuid
+  requesterId  String       @db.Uuid
+  addresseeId  String       @db.Uuid
+  status       FriendStatus @default(PENDING)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  requester    User         @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee    User         @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+}
+
+model PlayerStatistics {
+  id                String    @id @default(uuid()) @db.Uuid
+  characterId       String    @unique @db.Uuid
+  kills             Int       @default(0)
+  deaths            Int       @default(0)
+  dungeonsCompleted Int       @default(0)
+  questsCompleted   Int       @default(0)
+  playtimeSeconds   BigInt    @default(0)
+  damageDealt       BigInt    @default(0)
+  damageTaken       BigInt    @default(0)
+  metadata          Json?
+  updatedAt         DateTime  @updatedAt
+
+  character         Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+}
+
+model LeaderboardEntry {
+  id          String    @id @default(uuid()) @db.Uuid
+  characterId String   @db.Uuid
+  scope       String
+  season      String
+  metric      String
+  score       Decimal   @db.Decimal(24, 4)
+  rank        Int
+  metadata    Json?
+  updatedAt   DateTime  @updatedAt
+
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([scope, season, metric, characterId])
+  @@index([scope, season, metric, rank])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([type, createdAt])
+}
+
+model MatchmakingTicket {
+  id          String    @id @default(uuid()) @db.Uuid
+  characterId String   @db.Uuid
+  partyId     String?  @db.Uuid
+  queueKey    String
+  rating      Int      @default(1000)
+  metadata    Json?
+  matchedAt   DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime @default(now())
+
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  party       Party?    @relation(fields: [partyId], references: [id], onDelete: SetNull)
+
+  @@index([queueKey, matchedAt, cancelledAt, createdAt])
+  @@index([characterId, cancelledAt])
+}
+
+model AuditLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  actorUserId String?   @db.Uuid
+  action      String
+  targetType  String
+  targetId    String?
+  ipAddress   String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  actor       User?     @relation("AuditActor", fields: [actorUserId], references: [id])
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+  @@index([action, createdAt])
+}

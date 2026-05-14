@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: mmorpg
+          POSTGRES_USER: mmorpg
+          POSTGRES_PASSWORD: mmorpg
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mmorpg -d mmorpg"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://mmorpg:mmorpg@localhost:5432/mmorpg?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci_access_secret_ci_access_secret_ci_access_secret
+      JWT_REFRESH_SECRET: ci_refresh_secret_ci_refresh_secret_ci_refresh_secret
+      COOKIE_SECRET: ci_cookie_secret_ci_cookie_secret
+      INTERNAL_API_TOKEN: ci_internal_service_token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile=false
+      - run: pnpm --filter @mmorpg/api prisma:generate
+      - run: pnpm typecheck
+      - run: pnpm build
+
+  plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: gradle -p minecraft/plugins build

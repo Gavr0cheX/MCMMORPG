@@ -1,0 +1,38 @@
+config-version = "2.7"
+bind = "0.0.0.0:25565"
+motd = "MMORPG Network"
+show-max-players = 500
+online-mode = true
+force-key-authentication = true
+prevent-client-proxy-connections = true
+player-info-forwarding-mode = "modern"
+forwarding-secret = "${VELOCITY_FORWARDING_SECRET}"
+announce-forge = false
+kick-existing-players = false
+ping-passthrough = "DISABLED"
+enable-player-address-logging = true
+
+[servers]
+lobby = "lobby:25565"
+mmorpg-1 = "mmorpg-1:25565"
+mmorpg-2 = "mmorpg-2:25565"
+
+try = ["lobby"]
+
+[forced-hosts]
+"play.localhost" = ["lobby"]
+
+[advanced]
+compression-threshold = 256
+compression-level = -1
+login-ratelimit = 3000
+connection-timeout = 5000
+read-timeout = 30000
+haproxy-protocol = false
+tcp-fast-open = false
+bungee-plugin-message-channel = true
+show-ping-requests = false
+failover-on-unexpected-server-disconnect = true
+announce-proxy-commands = true
+log-command-executions = true
+log-player-connections = true

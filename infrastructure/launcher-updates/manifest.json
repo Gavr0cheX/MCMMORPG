@@ -1,0 +1,19 @@
+{
+  "channel": "stable",
+  "version": "0.1.0",
+  "minimumLauncherVersion": "0.1.0",
+  "notes": "Initial local development manifest.",
+  "publishedAt": "2026-05-13T00:00:00.000Z",
+  "assets": [],
+  "modpacks": [
+    {
+      "id": "mmorpg-client",
+      "version": "0.1.0",
+      "minecraftVersion": "1.21.8",
+      "loader": "vanilla",
+      "sha256": "",
+      "size": 0,
+      "url": "/launcher-updates/modpacks/mmorpg-client-0.1.0.zip"
+    }
+  ]
+}

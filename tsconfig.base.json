@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@mmorpg/shared-types": ["packages/shared-types/src"],
+      "@mmorpg/shared-config": ["packages/shared-config/src"],
+      "@mmorpg/shared-utils": ["packages/shared-utils/src"],
+      "@mmorpg/shared-ui": ["packages/shared-ui/src"]
+    }
+  }
+}

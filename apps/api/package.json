@@ -1,0 +1,54 @@
+{
+  "name": "@mmorpg/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test",
+    "prisma:generate": "prisma generate --config prisma.config.ts",
+    "prisma:migrate": "prisma migrate dev --config prisma.config.ts",
+    "prisma:deploy": "prisma migrate deploy --config prisma.config.ts",
+    "prisma:studio": "prisma studio --config prisma.config.ts",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "latest",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/helmet": "latest",
+    "@fastify/jwt": "latest",
+    "@fastify/rate-limit": "latest",
+    "@fastify/swagger": "latest",
+    "@fastify/swagger-ui": "latest",
+    "@mmorpg/shared-config": "workspace:*",
+    "@mmorpg/shared-types": "workspace:*",
+    "@mmorpg/shared-utils": "workspace:*",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "latest",
+    "dotenv": "^17.2.3",
+    "fastify": "^5.8.5",
+    "fastify-plugin": "latest",
+    "ioredis": "latest",
+    "pg": "latest",
+    "prom-client": "latest",
+    "socket.io": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "latest",
+    "@types/node": "^22.15.0",
+    "@types/pg": "latest",
+    "prisma": "^7.8.0",
+    "tsx": "latest",
+    "typescript": "^5.9.2"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

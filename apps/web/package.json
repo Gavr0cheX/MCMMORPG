@@ -1,0 +1,41 @@
+{
+  "name": "@mmorpg/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "next lint",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "latest",
+    "@mmorpg/shared-types": "workspace:*",
+    "@mmorpg/shared-ui": "workspace:*",
+    "@tanstack/react-query": "latest",
+    "class-variance-authority": "latest",
+    "clsx": "latest",
+    "framer-motion": "latest",
+    "lucide-react": "latest",
+    "next": "^16.2.6",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-hook-form": "latest",
+    "socket.io-client": "latest",
+    "tailwind-merge": "latest",
+    "zod": "latest",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "^22.15.0",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "eslint-config-next": "latest",
+    "tailwindcss": "latest",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,7 @@
+name: MmorpgQuest
+version: 0.1.0
+main: com.example.mmorpg.quest.QuestPlugin
+api-version: "1.21"
+depend: ["MmorpgCore"]
+authors: ["MMORPG Platform"]
+description: Extensible quest objective engine.

@@ -1,0 +1,7 @@
+name: MmorpgAuth
+version: 0.1.0
+main: com.example.mmorpg.auth.AuthPlugin
+api-version: "1.21"
+depend: ["MmorpgCore"]
+authors: ["MMORPG Platform"]
+description: Launcher session validation and anti-spoof join checks.

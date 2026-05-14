@@ -1,0 +1,7 @@
+name: MmorpgGuild
+version: 0.1.0
+main: com.example.mmorpg.guild.GuildPlugin
+api-version: "1.21"
+depend: ["MmorpgCore"]
+authors: ["MMORPG Platform"]
+description: Guild chat and guild synchronization hooks.

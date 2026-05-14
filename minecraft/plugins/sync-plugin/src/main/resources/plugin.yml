@@ -1,0 +1,7 @@
+name: MmorpgSync
+version: 0.1.0
+main: com.example.mmorpg.sync.SyncPlugin
+api-version: "1.21"
+depend: ["MmorpgCore"]
+authors: ["MMORPG Platform"]
+description: Redis synchronization and server heartbeat publisher.
