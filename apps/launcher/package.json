@@ -14,6 +14,7 @@
     "test": "node --test"
   },
   "dependencies": {
+    "@mmorpg/shared-config": "workspace:*",
     "@mmorpg/shared-types": "workspace:*",
     "electron-updater": "^6.8.3",
     "zod": "latest"

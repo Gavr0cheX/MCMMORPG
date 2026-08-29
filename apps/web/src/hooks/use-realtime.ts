@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { io } from "socket.io-client";
+import { resolveWebSocketUrl } from "@mmorpg/shared-config";
 import { getAccessToken } from "@/lib/api";
 
 export function useRealtime(onServerHeartbeat?: (payload: { serverSlug: string; onlinePlayers: number; status: string }) => void) {
@@ -11,7 +12,7 @@ export function useRealtime(onServerHeartbeat?: (payload: { serverSlug: string; 
       return;
     }
 
-    const socket = io(process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost", {
+    const socket = io(resolveWebSocketUrl(process.env.NEXT_PUBLIC_WS_URL), {
       path: "/socket.io",
       auth: { token }
     });

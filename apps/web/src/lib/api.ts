@@ -1,6 +1,7 @@
 import type { AuthResponse } from "@mmorpg/shared-types";
+import { resolveApiBaseUrl } from "@mmorpg/shared-config";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost/api";
+const API_BASE_URL = resolveApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 
 type RequestOptions = RequestInit & {
   auth?: boolean;

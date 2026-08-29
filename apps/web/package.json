@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "latest",
+    "@mmorpg/shared-config": "workspace:*",
     "@mmorpg/shared-types": "workspace:*",
     "@mmorpg/shared-ui": "workspace:*",
     "@tanstack/react-query": "latest",

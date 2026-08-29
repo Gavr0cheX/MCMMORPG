@@ -2,14 +2,15 @@ import { app, BrowserWindow, ipcMain, shell } from "electron";
 import electronUpdater from "electron-updater";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveApiBaseUrl, resolveLauncherUpdatesBaseUrl } from "@mmorpg/shared-config";
 import { detectJava } from "./java.js";
 import { launchMinecraft, type MinecraftLaunchInput } from "./minecraft.js";
 import { fetchLauncherManifest, verifyAsset } from "./patcher.js";
 
 const { autoUpdater } = electronUpdater;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost/api";
-const LAUNCHER_UPDATES_BASE_URL = process.env.LAUNCHER_UPDATES_BASE_URL ?? "http://localhost/launcher-updates";
+const API_BASE_URL = resolveApiBaseUrl(process.env.API_BASE_URL);
+const LAUNCHER_UPDATES_BASE_URL = resolveLauncherUpdatesBaseUrl(process.env.LAUNCHER_UPDATES_BASE_URL);
 const MINECRAFT_SERVER_HOST = process.env.MINECRAFT_SERVER_HOST ?? "localhost";
 const MINECRAFT_SERVER_PORT = Number.parseInt(process.env.MINECRAFT_SERVER_PORT ?? "25565", 10);
 const MINECRAFT_SESSION_HOST_SUFFIX = process.env.MINECRAFT_SESSION_HOST_SUFFIX ?? "127.0.0.1.sslip.io";
